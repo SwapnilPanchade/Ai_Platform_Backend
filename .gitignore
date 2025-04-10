@@ -17,9 +17,9 @@ yarn-debug.log*
 yarn-error.log*
 
 # Environment variables
-.env
-.env.local
-.env.*.local
+# .env
+# .env.local
+# .env.*.local
 
 # OS-specific
 .DS_Store
@@ -44,8 +44,8 @@ logs/
 pids.log
 
 # Optional: if you have Docker stuff
-docker-compose.override.yml
-.docker/
+# docker-compose.override.yml
+# .docker/
 
 # Optional: if you're using Prisma or GraphQL tools
 prisma/dev.db
