@@ -1,0 +1,15 @@
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb_ai_platform
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=ai_platform
+    restart: unless-stopped
+
+volumes:
+  mongodb_data:
+    driver: local
