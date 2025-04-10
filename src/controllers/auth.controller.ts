@@ -3,6 +3,7 @@ import jwt, { SignOptions } from "jsonwebtoken"; // Import SignOptions
 import mongoose, { Types } from "mongoose"; // Import mongoose to use Types.ObjectId
 import User from "../models/User";
 import { RegisterInput, LoginInput } from "../validators/user.validator";
+import { UserRole } from "../models/User";
 
 const generateToken = (userId: string, role: string): string => {
   const secret = process.env.JWT_SECRET;
@@ -27,8 +28,10 @@ export const registerUser = async (
   req: Request<{}, {}, RegisterInput>,
   res: Response
 ): Promise<void> => {
+  console.log("Received the registeration data ", req.body);
+
   try {
-    const { email, password } = req.body;
+    const { email, password, firstName, lastName, UserRole } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -36,7 +39,13 @@ export const registerUser = async (
       return;
     }
 
-    const newUser = new User({ email, password });
+    const newUser = new User({
+      email,
+      password,
+      firstName,
+      lastName,
+      UserRole,
+    });
 
     await newUser.save();
 
