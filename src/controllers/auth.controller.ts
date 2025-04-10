@@ -31,7 +31,7 @@ export const registerUser = async (
   console.log("Received the registeration data ", req.body);
 
   try {
-    const { email, password, firstName, lastName, UserRole } = req.body;
+    const { email, password, firstName, lastName, role } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -44,7 +44,7 @@ export const registerUser = async (
       password,
       firstName,
       lastName,
-      UserRole,
+      role,
     });
 
     await newUser.save();
@@ -102,7 +102,7 @@ export const loginUser = async (
       message: "Login successful",
       token,
       user: {
-        id: user._id, // Sending the ID itself is fine here
+        id: user._id, 
         email: user.email,
         role: user.role,
       },
