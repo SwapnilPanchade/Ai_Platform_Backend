@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth.routes";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import healthRoutes from "./routes/health.routes";
+import { metricsMiddleware } from "./controllers/health.controller";
 
 dotenv.config();
 const app: Express = express();
@@ -17,6 +18,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/health", healthRoutes);
+app.use(metricsMiddleware);
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello World! API is running ");
