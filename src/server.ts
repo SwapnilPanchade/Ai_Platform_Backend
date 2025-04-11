@@ -8,10 +8,22 @@ import healthRoutes from "./routes/health.routes";
 import paymentRoutes from "./routes/payment.routes";
 import webhookRoutes from "./routes/webhook.routes";
 import { metricsMiddleware } from "./controllers/health.controller";
+import http from "http";
+import { Server as SocketIOServer } from "socket.io";
+import { setupWebSocket } from "./websocket";
 
 dotenv.config();
 const app: Express = express();
 const PORT: number = parseInt(process.env.PORT || "5001", 10);
+
+const httpServer = http.createServer(app);
+
+const io = new SocketIOServer(httpServer, {
+  cors: {
+    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    methods: ["GET", "POST"],
+  },
+});
 
 connectDB();
 
@@ -28,9 +40,15 @@ app.get("/", (req: Request, res: Response) => {
   res.send("Hello World! API is running ");
 });
 
+setupWebSocket(io);
+
 mongoose.connection.once("open", () => {
   console.log("MongoDB connection open. Starting server...");
-  app.listen(PORT, () => {
+  httpServer.listen(PORT, () => {
     console.log(`Server listening on port ${PORT}`);
   });
+});
+
+mongoose.connection.on("error", (err) => {
+  console.log(`MongoDB connection error : ${err}`);
 });
