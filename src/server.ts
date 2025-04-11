@@ -5,6 +5,7 @@ import authRoutes from "./routes/auth.routes";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
 import healthRoutes from "./routes/health.routes";
+import paymentRoutes from "./routes/payment.routes";
 import { metricsMiddleware } from "./controllers/health.controller";
 
 dotenv.config();
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
 app.use("/api/health", healthRoutes);
+app.use("/api/payments", paymentRoutes);
 app.use(metricsMiddleware);
 
 app.get("/", (req: Request, res: Response) => {
