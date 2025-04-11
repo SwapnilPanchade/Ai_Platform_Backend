@@ -151,3 +151,23 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6...
 - ✅ MongoDB should be running (local or Atlas).
 - 🔁 Use `npm run dev` for development mode with hot reloading.
 - 🔒 Use roles like `admin`, `pro`, `free` when registering,by def it's a free user
+
+## 💳 Testing Stripe Integration
+
+**Step 8: Testing**
+
+1. **Run Backend:** Start your Node.js server.
+2. **Run Stripe CLI:** stripe listen --forward-to localhost:5001/webhooks/stripe (use the correct port/path). Copy the whsec\_... secret into your .env file and restart the backend if needed.
+3. **Use Postman (or similar):**
+
+   - **Register/Login:** Get an auth token for a test user.
+   - **Create Checkout:** POST /api/payments/create-checkout-session (with Auth header). Copy the sessionId.
+   - **Simulate Payment:** In a browser, go to https://checkout.stripe.com/pay/{sessionId} (replace {sessionId} with the ID you got). Use Stripe's test card numbers (like 4242 4242 4242 4242, any future date, any 3-digit CVC). Complete the checkout.
+   - **Check Webhooks:** Look at the Stripe CLI output. You should see events like checkout.session.completed, invoice.created, invoice.paid, customer.subscription.created. Check your backend console logs for ✅ Stripe Webhook Received....
+   - **Check Database:** Verify the user document in MongoDB now has stripeCustomerId, stripeSubscriptionId, stripeSubscriptionStatus: 'pro', and role: 'pro'.
+   - **Cancel Subscription:** POST /api/payments/cancel-subscription (with Auth header).
+   - **Check Webhooks:** Look for customer.subscription.updated event (with cancel_at_period_end: true).
+   - **Check Database:** User status shouldn't change immediately if you used cancel_at_period_end.
+   - **(Advanced Test):** You can use the Stripe dashboard (in test mode) to manually advance time or trigger specific subscription events to test failures or end-of-period cancellations.
+
+   - \*\*ADD YOUR STRIPE KEY AND VALUES TO INTEGRATE THE STRIPE
