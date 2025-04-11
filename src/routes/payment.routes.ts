@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { createCheckoutSession } from "../controllers/payment.controller";
+import {
+  createCheckoutSession,
+  cancelSubscription,
+} from "../controllers/payment.controller";
 import { authenticateToken } from "../middleware/auth.middleware";
 
 const router = Router();
@@ -12,7 +15,7 @@ router.post(
 );
 
 // POST /api/payments/cancel-subscription - User cancels
-// router.post("/cancel-subscription", authenticateToken, cancelSubscription);
+router.post("/cancel-subscription", authenticateToken, cancelSubscription);
 
 // GET /api/payments/portal - Redirect to Stripe Billing Portal
 // router.get('/portal', authenticateToken, createBillingPortalSession);
