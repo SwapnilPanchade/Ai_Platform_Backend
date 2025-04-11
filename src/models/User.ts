@@ -4,6 +4,13 @@ import bcrypt from "bcrypt";
 export type UserRole = "free" | "pro" | "admin";
 const userRoles: UserRole[] = ["free", "pro", "admin"];
 
+export type SubscriptionStatus =
+  | "free"
+  | "pro"
+  | "canceled"
+  | "incomplete"
+  | "past_due";
+
 export interface IUser extends Document {
   email: string;
   password?: string;
@@ -12,6 +19,10 @@ export interface IUser extends Document {
   lastName?: string;
   createdAt: Date;
   updatedAt: Date;
+
+  stripeCustomerId?: string; // Stripe Customer ID associated with this user
+  stripeSubscriptionId?: string; // Active Stripe Subscription ID (if any)
+  stripeSubscriptionStatus?: SubscriptionStatus;
 
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
@@ -43,6 +54,23 @@ const UserSchema: Schema<IUser> = new Schema(
     lastName: {
       type: String,
       trim: true,
+    },
+    stripeCustomerId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+    stripeSubscriptionId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+    stripeSubscriptionStatus: {
+      type: String,
+      enum: ["free", "pro", "canceled", "incomplete", "past_due"],
+      default: "free",
     },
   },
   {
