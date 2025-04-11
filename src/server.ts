@@ -6,6 +6,7 @@ import mongoose from "mongoose";
 import dotenv from "dotenv";
 import healthRoutes from "./routes/health.routes";
 import paymentRoutes from "./routes/payment.routes";
+import webhookRoutes from "./routes/webhook.routes";
 import { metricsMiddleware } from "./controllers/health.controller";
 
 dotenv.config();
@@ -15,6 +16,7 @@ const PORT: number = parseInt(process.env.PORT || "5001", 10);
 connectDB();
 
 app.use(cors());
+app.use("/webhooks", webhookRoutes);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRoutes);
