@@ -1,6 +1,8 @@
 import express, { Express, Request, Response } from "express";
 import cors from "cors";
 import connectDB from "./db";
+import agenda from "./config/agenda";
+import defineEmailJob from "./jobs/email.jobs";
 import authRoutes from "./routes/auth.routes";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
@@ -15,9 +17,7 @@ import { setupWebSocket } from "./websocket";
 dotenv.config();
 const app: Express = express();
 const PORT: number = parseInt(process.env.PORT || "5001", 10);
-
 const httpServer = http.createServer(app);
-
 const io = new SocketIOServer(httpServer, {
   cors: {
     origin: process.env.FRONTEND_URL || "http://localhost:3000",
@@ -25,7 +25,16 @@ const io = new SocketIOServer(httpServer, {
   },
 });
 
-connectDB();
+connectDB()
+  .then(() => {
+    defineEmailJob(agenda);
+  })
+  .catch((err) => {
+    console.error(
+      "Error while connecting the DB and deifining mail job 'Agenda' n server.ts"
+    );
+    process.exit(1);
+  });
 
 app.use(cors());
 app.use("/webhooks", webhookRoutes);
