@@ -71,7 +71,7 @@ export const registerUser = async (
          text: text,
          html: html,
        });
-       console.log(`Welcome email queued/sent for ${newUser.email}`);
+       console.log(`Welcome email queued/sent to newUser  ${newUser.email}`);
      } catch (emailError) {
        
        console.error(
