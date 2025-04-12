@@ -3,6 +3,7 @@ import jwt, { SignOptions } from "jsonwebtoken";
 import mongoose, { Types } from "mongoose";
 import User from "../models/User";
 import { sendEmail } from "../services/email.service";
+import agenda from "../config/agenda";
 import { RegisterInput, LoginInput } from "../validators/user.validator";
 import { UserRole } from "../models/User";
 
@@ -55,30 +56,28 @@ export const registerUser = async (
 
     const userIdString = (newUser._id as mongoose.Types.ObjectId).toString();
     const token = generateToken(userIdString, newUser.role);
+    //* Sending/Scheduling welcome email *//
+    try {
+      const jobData = {
+        // Prepare data for the job
+        to: newUser.email,
+        subject: "Welcome to the AI Platform!",
+        text: `Hi ${
+          firstName || "there"
+        },\n\nWelcome! We're excited to have you.\n\nBest regards,\nThe AI Platform Team`,
+        html: `<p>Hi ${
+          firstName || "there"
+        },</p><p>Welcome! We're excited to have you.</p><p>Best regards,<br/>The AI Platform Team</p>`,
+      };
+      await agenda.now("send-email", jobData);
 
-     try {
-       const subject = "Welcome to the AI Tutor Platform!";
-       const text = `Hi ${
-         firstName || "there"
-       },\n\nWelcome to our platform! We're excited to have you.\n\nBest regards,\nThe AI Platform Team`;
-       const html = `<p>Hi ${
-         firstName || "there"
-       },</p><p>Welcome to our platform! We're excited to have you.</p><p>Best regards,<br/>The AI Platform Team</p>`; 
-
-       await sendEmail({
-         to: newUser.email,
-         subject: subject,
-         text: text,
-         html: html,
-       });
-       console.log(`Welcome email queued/sent to newUser  ${newUser.email}`);
-     } catch (emailError) {
-       
-       console.error(
-         `Failed to send welcome email to ${newUser.email}:`,
-         emailError
-       );
-     }
+      console.log(`Welcome email job scheduled for ${newUser.email}`);
+    } catch (scheduleError) {
+      console.error(
+        `Failed to schedule welcome email job for ${newUser.email}:`,
+        scheduleError
+      );
+    }
 
     res.status(201).json({
       message: "User registered successfully",
