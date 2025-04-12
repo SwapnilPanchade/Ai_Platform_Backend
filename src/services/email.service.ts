@@ -1,3 +1,4 @@
+//! The email service is temporarily using localtest and Ethereal if you want to use the production level service kindly setup the variables in .env file and you are good for the production level.
 import nodemailer from "nodemailer";
 import Mail from "nodemailer/lib/mailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
