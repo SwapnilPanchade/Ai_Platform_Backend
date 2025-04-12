@@ -56,6 +56,30 @@ export const registerUser = async (
     const userIdString = (newUser._id as mongoose.Types.ObjectId).toString();
     const token = generateToken(userIdString, newUser.role);
 
+     try {
+       const subject = "Welcome to the AI Tutor Platform!";
+       const text = `Hi ${
+         firstName || "there"
+       },\n\nWelcome to our platform! We're excited to have you.\n\nBest regards,\nThe AI Platform Team`;
+       const html = `<p>Hi ${
+         firstName || "there"
+       },</p><p>Welcome to our platform! We're excited to have you.</p><p>Best regards,<br/>The AI Platform Team</p>`; 
+
+       await sendEmail({
+         to: newUser.email,
+         subject: subject,
+         text: text,
+         html: html,
+       });
+       console.log(`Welcome email queued/sent for ${newUser.email}`);
+     } catch (emailError) {
+       
+       console.error(
+         `Failed to send welcome email to ${newUser.email}:`,
+         emailError
+       );
+     }
+
     res.status(201).json({
       message: "User registered successfully",
       user: userResponse,
