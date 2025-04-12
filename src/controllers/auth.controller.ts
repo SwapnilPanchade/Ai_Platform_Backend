@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
-import jwt, { SignOptions } from "jsonwebtoken"; // Import SignOptions
-import mongoose, { Types } from "mongoose"; // Import mongoose to use Types.ObjectId
+import jwt, { SignOptions } from "jsonwebtoken"; 
+import mongoose, { Types } from "mongoose"; 
 import User from "../models/User";
 import { RegisterInput, LoginInput } from "../validators/user.validator";
 import { UserRole } from "../models/User";
