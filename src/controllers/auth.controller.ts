@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import jwt, { SignOptions } from "jsonwebtoken"; 
-import mongoose, { Types } from "mongoose"; 
+import jwt, { SignOptions } from "jsonwebtoken";
+import mongoose, { Types } from "mongoose";
 import User from "../models/User";
+import { sendEmail } from "../services/email.service";
 import { RegisterInput, LoginInput } from "../validators/user.validator";
 import { UserRole } from "../models/User";
 
@@ -102,7 +103,7 @@ export const loginUser = async (
       message: "Login successful",
       token,
       user: {
-        id: user._id, 
+        id: user._id,
         email: user.email,
         role: user.role,
       },
