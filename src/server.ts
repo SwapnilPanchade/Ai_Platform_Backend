@@ -39,7 +39,7 @@ connectDB()
 
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, 
-    max: 100, 
+    max: 100, // Limiting each IP to 100 genral api calls
     message:
       "Too many requests created from this IP, please try again after 15 minutes",
     standardHeaders: true, 
