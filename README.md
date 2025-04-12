@@ -171,3 +171,27 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6...
    - **(Advanced Test):** You can use the Stripe dashboard (in test mode) to manually advance time or trigger specific subscription events to test failures or end-of-period cancellations.
 
    - \*\*ADD YOUR STRIPE KEY AND VALUES TO INTEGRATE THE STRIPE
+
+# Testing Email Functionality with Ethereal
+
+## Step 6: Testing with Ethereal
+
+1. Make sure NODE_ENV is set to production add you have modified the production variables as well in .env file you have provided
+
+```
+📧 Using Ethereal for email testing.
+ ethereal user: xxxxxxxxxxxxxxxx@ethereal.email
+ ethereal password: xxxxxxxxxxxxx
+📧 Ethereal transporter created.
+```
+
+3. Use Postman or your frontend to register a new user.
+
+4. Check the backend console logs again. After successful registration, you should see:
+
+```
+📧 Email sent: <message_id_string>
+✉️ Preview URL: https://ethereal.email/message/xxxxxxxxxxxxxxxxxxxx
+```
+
+5. **Copy the "Preview URL" and paste it into your browser.** You should see the welcome email rendered as it would appear in an email client.
