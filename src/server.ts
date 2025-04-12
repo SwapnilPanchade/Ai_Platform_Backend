@@ -13,6 +13,7 @@ import { metricsMiddleware } from "./controllers/health.controller";
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { setupWebSocket } from "./websocket";
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
 const app: Express = express();
@@ -34,6 +35,25 @@ connectDB()
       "Error while connecting the DB and deifining mail job 'Agenda' n server.ts"
     );
     process.exit(1);
+  });
+
+  const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 100, 
+    message:
+      "Too many requests created from this IP, please try again after 15 minutes",
+    standardHeaders: true, 
+    legacyHeaders: false, 
+  });
+
+  
+  const authLimiter = rateLimit({
+    windowMs: 5 * 60 * 1000,
+    max: 5, // Limit each IP to 5 login/register attempts per window
+    message:
+      "Too many login/registration attempts from this IP, please try again after 5 minutes",
+    standardHeaders: true,
+    legacyHeaders: false,
   });
 
 app.use(cors());
