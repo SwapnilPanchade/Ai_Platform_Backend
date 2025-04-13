@@ -1,9 +1,10 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import logger from "../utils/logger";
 import { saveLogToDb } from "../services/log.service";
 import Stripe from "stripe";
 import { stripe } from "../config/stripe";
-import User, { UserRole, SubscriptionStatus } from "../models/User";
+import User, { IUser, UserRole, SubscriptionStatus } from "../models/User";
 
 export const handleStripeWebhook = async (
   req: Request,
@@ -11,7 +12,15 @@ export const handleStripeWebhook = async (
 ): Promise<void> => {
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    console.error("STRIPE_WEBHOOK_SECRET is not set.");
+    // console.error("STRIPE_WEBHOOK_SECRET is not set.");
+    logger.error(
+      "Webhook configuration error: STRIPE_WEBHOOK_SECRET is not set."
+    );
+    saveLogToDb({
+      level: "error",
+      message: "Webhook Error: Server configuration missing webhook secret.",
+      ipAddress: req.ip, // Include IP if relevant
+    });
     res
       .status(400)
       .send("Webhook Error: Server configuration missing webhook secret.");
@@ -26,18 +35,39 @@ export const handleStripeWebhook = async (
 
     event = stripe.webhooks.constructEvent(bodyBuffer, sig, webhookSecret);
   } catch (err: any) {
-    console.error(`Webhook signature verification failed: ${err.message}`);
+    // console.error(`Webhook signature verification failed: ${err.message}`);
+    logger.error(
+      { err, ip: req.ip },
+      `Webhook signature verification failed: ${err.message}`
+    );
+    // Save signature verification failure to DB log
+    saveLogToDb({
+      level: "error",
+      message: `Webhook signature verification failed: ${err.message}`,
+      error: err,
+      ipAddress: req.ip,
+      meta: { signatureHeader: sig }, // Add relevant metadata
+    });
     res.status(400).send(`Webhook Error: ${err.message}`);
     return;
   }
 
-  console.log(` Stripe Webhook Received: ${event.type}`);
+  // console.log(` Stripe Webhook Received: ${event.type}`);
+  logger.info(
+    { eventType: event.type, eventId: event.id },
+    `Stripe Webhook Received`
+  );
   const dataObject = event.data.object as any;
 
   try {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = dataObject as Stripe.Checkout.Session;
+        logger.debug(
+          { eventId: event.id, sessionId: session.id },
+          `Processing ${event.type}`
+        );
+
         if (
           session.mode === "subscription" &&
           session.payment_status === "paid"
@@ -46,14 +76,41 @@ export const handleStripeWebhook = async (
           const customerId = session.customer as string;
           const mongoUserId = session.metadata?.mongoUserId; // Get our user ID
 
-          console.log(
-            `Checkout session completed for subscription ${subscriptionId}, customer ${customerId}, user ${mongoUserId}`
+          // console.log(
+          //   `Checkout session completed for subscription ${subscriptionId}, customer ${customerId}, user ${mongoUserId}`
+          // );
+          logger.info(
+            {
+              eventId: event.id,
+              subId: subscriptionId,
+              custId: customerId,
+              userId: mongoUserId,
+            },
+            `Checkout session completed for subscription`
           );
-
           if (!mongoUserId) {
-            console.error(
+            // console.error(
+            //   "Webhook Error: mongoUserId missing in checkout session metadata."
+            // );
+            logger.error(
+              {
+                eventId: event.id,
+                sessionId: session.id,
+                metadata: session.metadata,
+              },
               "Webhook Error: mongoUserId missing in checkout session metadata."
             );
+            // Save error log to DB
+            saveLogToDb({
+              level: "error",
+              message:
+                "Webhook Error: mongoUserId missing in checkout session metadata.",
+              meta: {
+                eventId: event.id,
+                sessionId: session.id,
+                customerId: customerId,
+              },
+            });
             break;
           }
 
@@ -210,11 +267,21 @@ export const handleStripeWebhook = async (
       default:
         console.log(`Unhandled Stripe event type: ${event.type}`);
     }
-  } catch (dbOrProcessingError) {
-    console.error(
-      `Error processing webhook event ${event.id} (${event.type}):`,
-      dbOrProcessingError
+  } catch (dbOrProcessingError: any) {
+    // console.error(
+    //   `Error processing webhook event ${event.id} (${event.type}):`,
+    //   dbOrProcessingError
+    // );
+    logger.error(
+      { err: dbOrProcessingError, eventId: event.id, eventType: event.type },
+      `Error processing webhook event`
     );
+    saveLogToDb({
+      level: "error",
+      message: `Unexpected error processing webhook: ${dbOrProcessingError.message}`,
+      error: dbOrProcessingError,
+      meta: { eventId: event.id, eventType: event.type },
+    });
   }
 
   res.status(200).json({ received: true });
