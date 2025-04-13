@@ -1,4 +1,6 @@
 import { Request, Response } from "express";
+import logger from "../utils/logger";
+import { saveLogToDb } from "../services/log.service";
 import Stripe from "stripe";
 import { stripe } from "../config/stripe";
 import User, { UserRole, SubscriptionStatus } from "../models/User";

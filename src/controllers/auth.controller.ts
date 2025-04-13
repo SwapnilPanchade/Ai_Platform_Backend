@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import jwt, { SignOptions } from "jsonwebtoken";
+import logger from "../utils/logger";
+import { saveLogToDb } from "../services/log.service";
 import mongoose, { Types } from "mongoose";
 import User from "../models/User";
 import { sendEmail } from "../services/email.service";
@@ -30,13 +32,15 @@ export const registerUser = async (
   req: Request<{}, {}, RegisterInput>,
   res: Response
 ): Promise<void> => {
-  console.log("Received the registeration data ", req.body);
+  // console.log("Received the registeration data ", req.body);
+  logger.info({ email: req.body.email }, "Registration Attempt Started");
 
   try {
     const { email, password, firstName, lastName, role } = req.body;
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
+      logger.warn({ email }, "Registration failed: User already exists");
       res.status(409).json({ message: "User already exists with this email" });
       return;
     }
@@ -50,6 +54,15 @@ export const registerUser = async (
     });
 
     await newUser.save();
+    logger.info({ userId: newUser._id, email }, "User registered successfully");
+
+    // Saving registration event to DB Log
+    saveLogToDb({
+      level: "info",
+      message: "User registered",
+      userId: (newUser._id as any).toString(),
+      ipAddress: req.ip,
+    });
 
     const userResponse = newUser.toObject();
     delete userResponse.password;
@@ -71,11 +84,19 @@ export const registerUser = async (
       };
       await agenda.now("send-email", jobData);
 
-      console.log(`Welcome email job scheduled for ${newUser.email}`);
+      // console.log(`Welcome email job scheduled for ${newUser.email}`);
+      logger.info(
+        { email: newUser.email },
+        `Welcome email job scheduled for user ${newUser.email}`
+      );
     } catch (scheduleError) {
       console.error(
         `Failed to schedule welcome email job for ${newUser.email}:`,
         scheduleError
+      );
+      logger.error(
+        { err: scheduleError, email: req.body.email },
+        `Failed to schedule welcome email job for ${newUser.email}:`
       );
     }
 
@@ -85,7 +106,15 @@ export const registerUser = async (
       token: token,
     });
   } catch (error: any) {
-    console.error("Registration Error:", error);
+    logger.error({ err: error, email: req.body.email }, "Registration failed");
+
+    saveLogToDb({
+      level: "error",
+      message: `Registration failed: ${error.message}`,
+      error: error,
+      ipAddress: req.ip,
+      meta: { emailAttempted: req.body.email },
+    });
     if (error.name === "ValidationError") {
       res
         .status(400)
