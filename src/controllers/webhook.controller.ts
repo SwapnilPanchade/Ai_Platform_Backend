@@ -19,7 +19,7 @@ export const handleStripeWebhook = async (
     saveLogToDb({
       level: "error",
       message: "Webhook Error: Server configuration missing webhook secret.",
-      ipAddress: req.ip, // Include IP if relevant
+      ipAddress: req.ip,
     });
     res
       .status(400)
@@ -46,7 +46,7 @@ export const handleStripeWebhook = async (
       message: `Webhook signature verification failed: ${err.message}`,
       error: err,
       ipAddress: req.ip,
-      meta: { signatureHeader: sig }, // Add relevant metadata
+      meta: { signatureHeader: sig },
     });
     res.status(400).send(`Webhook Error: ${err.message}`);
     return;
@@ -74,7 +74,7 @@ export const handleStripeWebhook = async (
         ) {
           const subscriptionId = session.subscription as string;
           const customerId = session.customer as string;
-          const mongoUserId = session.metadata?.mongoUserId; // Get our user ID
+          const mongoUserId = session.metadata?.mongoUserId;
 
           // console.log(
           //   `Checkout session completed for subscription ${subscriptionId}, customer ${customerId}, user ${mongoUserId}`
@@ -100,7 +100,7 @@ export const handleStripeWebhook = async (
               },
               "Webhook Error: mongoUserId missing in checkout session metadata."
             );
-            // Save error log to DB
+
             saveLogToDb({
               level: "error",
               message:
