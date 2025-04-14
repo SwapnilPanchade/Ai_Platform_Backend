@@ -195,3 +195,55 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6...
 ```
 
 5. **Copy the "Preview URL" and paste it into your browser.** You should see the welcome email rendered as it would appear in an email client.
+
+## Implemented the log cleaning job part
+
+## ⚙️ Configuration
+
+- The primary configuration for `agenda` resides in `src/config/agenda.ts`.
+- It connects to the MongoDB database specified by the `MONGO_URI` environment variable (defined in `.env`).
+- `agenda` creates and manages its own collection in MongoDB (default: `agendaJobs`) to store job state and history.
+- Graceful shutdown logic is included in `config/agenda.ts` to stop Agenda cleanly when the server process terminates (SIGTERM, SIGINT).
+
+## 🚀 How it Works
+
+1.  **Initialization:** The `agenda` instance is configured and initialized in `src/config/agenda.ts`.
+2.  **DB Connection:** Agenda establishes its connection to MongoDB. The main application server (`src/server.ts`) waits for the primary database connection (`connectDB`) to succeed before proceeding with Agenda setup.
+3.  **Job Definitions:** Specific job logic is defined in files within the `src/jobs/` directory (e.g., `email.jobs.ts`, `cleanup.jobs.ts`). Each file exports a function that takes the `agenda` instance and uses `agenda.define()` to register the job name and its corresponding asynchronous function.
+4.  **Registration:** Job definition functions are imported and executed in `src/server.ts` _after_ the successful database connection, registering the jobs with the running `agenda` instance.
+5.  **Scheduling:** Recurring jobs are scheduled in `src/server.ts` using `agenda.every()`. This method takes a cron string or a human-readable interval, the job name, optional data, and options (like timezone).
+6.  **Execution:** The `agenda` instance periodically checks the database (`processEvery`) for jobs that are due to run. When a job is executed, the corresponding defined function is invoked.
+7.  **Asynchronous Tasks:** Jobs defined for immediate execution (e.g., sending emails asynchronously) are scheduled using `agenda.now()` from within the application code (e.g., controllers).
+
+## ✨ Implemented Jobs
+
+- **`send-email`:**
+  - **Defined in:** `src/jobs/email.jobs.ts`
+  - **Purpose:** Sends emails asynchronously using the `email.service.ts`. Takes email details (to, subject, text, html) as data.
+  - **Triggered by:** `agenda.now('send-email', jobData)` calls within the application (e.g., after user registration in `auth.controller.ts`).
+- **`cleanup-old-logs`:**
+  - **Defined in:** `src/jobs/cleanup.jobs.ts`
+  - **Purpose:** Periodically removes old log entries from the `logs` MongoDB collection to prevent it from growing indefinitely. Currently configured to remove logs older than 90 days.
+  - **Scheduled:** Runs daily at 3:00 AM UTC (`'0 3 * * *'`).
+
+## ➕ Adding New Scheduled Jobs
+
+1.  Create a new file in `src/jobs/` (e.g., `src/jobs/myNewTask.jobs.ts`).
+2.  Import `Agenda`, `Job`, `logger`, `saveLogToDb`, and any necessary models or services.
+3.  Define the job data interface (if the job requires specific input data).
+4.  Export a default function `defineMyNewTaskJob(agenda: Agenda)`.
+5.  Inside this function, call `agenda.define('my-new-task-name', async (job: Job<MyJobDataInterface | undefined>) => { /* job logic here */ });`. Implement the job logic, including logging success/failure with `logger` and `saveLogToDb`.
+6.  Import `defineMyNewTaskJob` in `src/server.ts`.
+7.  Call `defineMyNewTaskJob(agenda)` in `server.ts` after the DB connection, alongside other job definitions.
+8.  If it's a recurring job, add an `await agenda.every(...)` call in `server.ts` within the scheduling block, specifying the interval/cron string and the job name (`'my-new-task-name'`).
+
+## 📊 Monitoring & Tracking
+
+- **Job History:** The execution history, status (success/fail), `lastRunAt`, `nextRunAt`, etc., for all jobs are automatically stored by `agenda` in the `agendaJobs` MongoDB collection.
+- **Logging:** Job start, completion, and errors are logged using the centralized Pino logger (`logger`) to the console (and potentially other configured transports). Significant job events or errors are also logged to the `logs` MongoDB collection via `saveLogToDb`.
+
+## 🔮 Future Considerations (Examples Not Implemented in this Phase)
+
+- **Database Backups:** Critical backups are best handled by dedicated database tools (`mongodump`) or cloud provider services, not typically within the application scheduler.
+- **Subscription Renewal Checks:** Stripe handles recurring billing; status updates are received via webhooks (Task 4/7). Proactive checks are generally not needed for basic renewal status but could be added later for _expiration warnings_.
+- **Email Digests:** Can be easily added as a scheduled job once features generating digest content (new videos, user activity) are implemented.
