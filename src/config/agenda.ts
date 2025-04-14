@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const mongoConnectionString =
-  process.env.MONGO_URI || "mongodb://mongodb:27017/ai_platform";
+  process.env.MONGO_URI || "mongodb://localhost:27017/ai_platform";
 
 if (!mongoConnectionString) {
   console.error(

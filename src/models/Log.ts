@@ -41,7 +41,8 @@ const LogSchema: Schema<ILog> = new Schema(
   }
 );
 //! auto delete logs after 90 days
-LogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 90 }); // 90 days
+//?getting error for this about duplicate schema
+// LogSchema.index({ timestamp: 1 }, { expireAfterSeconds: 60 * 60 * 24 * 90 }); // 90 days
 
 const Log = mongoose.model<ILog>("Log", LogSchema);
 export default Log;
