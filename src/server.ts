@@ -17,6 +17,7 @@ import http from "http";
 import { Server as SocketIOServer } from "socket.io";
 import { setupWebSocket } from "./websocket";
 import rateLimit from "express-rate-limit";
+import defineCleanupJobs from "./jobs/cleanup.jobs";
 
 dotenv.config();
 const app: Express = express();
@@ -49,8 +50,26 @@ const httpLogger = pinoHttp({
 });
 
 connectDB()
-  .then(() => {
+  .then(async () => {
     defineEmailJob(agenda);
+    defineCleanupJobs(agenda);
+    try {
+      await agenda.start();
+      await agenda.every(
+        "0 3 * * *",
+        "cleanup-old-logs",
+        {},
+        { timezone: "Etc/UTC" }
+      );
+
+      logger.info(" Recurring jobs scheduled successfully.");
+    } catch (scheduleError) {
+      logger.error(
+        { err: scheduleError },
+        " Failed to schedule recurring jobs. Early exit"
+      );
+      process.exit(1);
+    }
   })
   .catch((err) => {
     console.error(
