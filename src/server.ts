@@ -4,6 +4,7 @@ import logger from "./utils/logger";
 import { saveLogToDb } from "./services/log.service";
 import cors from "cors";
 import connectDB from "./db";
+import adminRoutes from "./routes/admin.routes";
 import agenda from "./config/agenda";
 import defineEmailJob from "./jobs/email.jobs";
 import authRoutes from "./routes/auth.routes";
@@ -100,9 +101,10 @@ app.use(cors());
 app.use("/webhooks", webhookRoutes);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/health", healthRoutes);
-app.use("/api/payments", paymentRoutes);
+// app.use("/api/payments", apiLimiter, paymentRoutes);
+app.use("/api/admin", apiLimiter, adminRoutes);
 app.use(metricsMiddleware);
 app.use((err: any, req: Request, res: Response, next: Function) => {
   logger.error(
