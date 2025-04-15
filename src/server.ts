@@ -103,7 +103,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/health", healthRoutes);
-// app.use("/api/payments", apiLimiter, paymentRoutes);
+app.use("/api/payments", apiLimiter, paymentRoutes);
 app.use("/api/admin", apiLimiter, adminRoutes);
 app.use(metricsMiddleware);
 app.use((err: any, req: Request, res: Response, next: Function) => {
