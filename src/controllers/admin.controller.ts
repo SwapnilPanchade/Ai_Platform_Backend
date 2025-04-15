@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import User from "../models/User";
+import User, { UserRole, SubscriptionStatus } from "../models/User";
 import { ParsedQs } from "qs";
 import logger from "../utils/logger";
 import mongoose from "mongoose";
@@ -133,5 +133,120 @@ export const getLogs = async (
       userId: requestingUserId,
     });
     res.status(500).json({ message: "Error fetching logs" });
+  }
+};
+
+interface UpdateUserInput {
+  role?: UserRole;
+  firstName?: string;
+  lastName?: string;
+}
+
+export const updateUserByAdmin = async (
+  req: Request<{ userId: string }, {}, UpdateUserInput>,
+  res: Response
+): Promise<void> => {
+  const targetUserId = req.params.userId;
+  const updateData = req.body;
+  const adminUserId = (req as any).user?.id;
+  logger.info(
+    { adminUserId, targetUserId, updateData },
+    "Admin request to update user"
+  );
+
+  if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+    logger.warn({ adminUserId, targetUserId }, "Invalid target user ID format");
+    res.status(400).json({ message: "Invalid user ID format" });
+    return;
+  }
+  if (
+    adminUserId === targetUserId &&
+    updateData.role &&
+    updateData.role !== "admin"
+  ) {
+    logger.warn({ adminUserId }, "Admin attempted to downgrade their own role");
+    res.status(403).json({
+      message:
+        "Administrators cannot downgrade their own role via this endpoint.",
+    });
+    return;
+  }
+
+  try {
+    const userToUpdate = await User.findById(targetUserId);
+
+    if (!userToUpdate) {
+      logger.warn(
+        { adminUserId, targetUserId },
+        "Target user not found for update"
+      );
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    const changes: Partial<UpdateUserInput> = {};
+
+    if (updateData.role && ["free", "pro", "admin"].includes(updateData.role)) {
+      if (userToUpdate.role !== updateData.role) {
+        changes.role = updateData.role;
+        userToUpdate.role = updateData.role;
+        // TODO: If downgrading role from 'pro', consider potential interaction
+        // with Stripe subscription (e.g., should admin cancel it too?) - complex!
+        // For now, just update the role in our DB. Stripe status might override access later.
+      }
+    }
+    // Update other allowed fields
+    if (
+      updateData.firstName !== undefined &&
+      userToUpdate.firstName !== updateData.firstName
+    ) {
+      changes.firstName = updateData.firstName;
+      userToUpdate.firstName = updateData.firstName;
+    }
+    if (
+      updateData.lastName !== undefined &&
+      userToUpdate.lastName !== updateData.lastName
+    ) {
+      changes.lastName = updateData.lastName;
+      userToUpdate.lastName = updateData.lastName;
+    }
+
+    if (Object.keys(changes).length > 0) {
+      await userToUpdate.save();
+      logger.info(
+        { adminUserId, targetUserId, changes },
+        "User successfully updated by admin"
+      );
+
+      saveLogToDb({
+        level: "info",
+        message: `Admin updated user details. TargetUserID: ${targetUserId}`,
+        userId: adminUserId,
+        meta: { targetUserId, changesMade: changes },
+      });
+
+      const responseUser = userToUpdate.toObject();
+      delete responseUser.password;
+      res.status(200).json(responseUser);
+    } else {
+      logger.info(
+        { adminUserId, targetUserId },
+        "No changes detected for user update"
+      );
+      res.status(200).json(userToUpdate.toObject({ versionKey: false }));
+    }
+  } catch (error: any) {
+    logger.error(
+      { err: error, adminUserId, targetUserId },
+      "Failed to update user by admin"
+    );
+    saveLogToDb({
+      level: "error",
+      message: `Admin user update failed: ${error.message}`,
+      error: error,
+      userId: adminUserId,
+      meta: { targetUserId },
+    });
+    res.status(500).json({ message: "Error updating user" });
   }
 };
