@@ -10,7 +10,6 @@ import {
 
 const router = Router();
 
-// --- Inline Validation Middleware (Already fixed, but shown for context) ---
 const validateRegister = (
   req: Request,
   res: Response,
@@ -58,7 +57,6 @@ const validateLogin = (
   }
 };
 
-// --- Authentication Routes ---
 router.post("/register", validateRegister, registerUser);
 router.post("/login", validateLogin, loginUser);
 

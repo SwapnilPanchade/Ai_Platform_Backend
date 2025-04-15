@@ -56,7 +56,6 @@ export const registerUser = async (
     await newUser.save();
     logger.info({ userId: newUser._id, email }, "User registered successfully");
 
-    // Saving registration event to DB Log
     saveLogToDb({
       level: "info",
       message: "User registered",
@@ -72,7 +71,6 @@ export const registerUser = async (
     //* Sending/Scheduling welcome email *//
     try {
       const jobData = {
-        // Prepare data for the job
         to: newUser.email,
         subject: "Welcome to the AI Platform!",
         text: `Hi ${

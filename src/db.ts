@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
-const mongoUrl = "mongodb://mongodb:27017/ai_platform";
+//const mongoUrl = "mongodb://mongodb:27017/ai_platform";
+const mongoUrl = "mongodb://localhost:27017/ai_platform";
 
 const connectDB = async () => {
   try {
