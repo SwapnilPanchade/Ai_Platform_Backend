@@ -250,3 +250,59 @@ export const updateUserByAdmin = async (
     res.status(500).json({ message: "Error updating user" });
   }
 };
+
+//gettign user by userId
+
+export const getUserByIdAdmin = async (
+  req: Request<{ userId: string }>,
+  res: Response
+): Promise<void> => {
+  const targetUserId = req.params.userId;
+  const adminUserId = (req as any).user?.id;
+  logger.info(
+    { adminUserId, targetUserId },
+    "Admin request to fetch user by Id"
+  );
+
+  if (!mongoose.Types.ObjectId.isValid(targetUserId)) {
+    logger.warn(
+      { adminUserId, targetUserId },
+      "Invalid target userID format for fetch"
+    );
+    res.status(400).json({ message: "Invalid User id format" });
+    return;
+  }
+
+  try {
+    const user = await User.findById(targetUserId).select("-password").lean();
+
+    if (!user) {
+      logger.warn(
+        { adminUserId, targetUserId },
+        "Target user not found from fetch by ID"
+      );
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+    saveLogToDb({
+      level: "info",
+      message: `Admin viewed user details. TargetUserID: ${targetUserId}`,
+      userId: adminUserId,
+    });
+
+    res.status(200).json(user);
+  } catch (error: any) {
+    logger.error(
+      { err: error, adminUserId, targetUserId },
+      "Failed to fetch user by Id for admin"
+    );
+    saveLogToDb({
+      level: "error",
+      message: `Admin fetch user by Id failed: ${error.message}`,
+      error: error,
+      userId: adminUserId,
+      meta: { targetUserId },
+    });
+    res.status(500).json({ message: "Error whiel fetching the user details" });
+  }
+};
