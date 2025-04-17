@@ -45,3 +45,124 @@ export const createUpdateUrl = async (
     res.status(500).json({ message: "Error creating video upload session" });
   }
 };
+
+interface CreateVideoMetadataInput {
+  title: string;
+  description?: string;
+  accessLevel: "public" | "free" | "pro" | "admin";
+  isPublished?: boolean;
+  muxAssetId: string;
+  order?: number;
+}
+
+export const createVideoMetadata = async (
+  req: Request<{}, {}, CreateVideoMetadataInput>,
+  res: Response
+): Promise<void> => {
+  const adminUserId = (req as any).user?.id;
+  const { title, description, accessLevel, isPublished, muxAssetId, order } =
+    req.body;
+
+  logger.info(
+    { adminUserId, muxAssetId, title },
+    "Admin request to save video metadata"
+  );
+
+  // Basic validation
+  if (!title || !accessLevel || !muxAssetId) {
+    logger.warn(
+      { adminUserId, body: req.body },
+      "Missing required fields for saving video metadata"
+    );
+    res.status(400).json({
+      message: "Missing required fields (title, accessLevel, muxAssetId)",
+    });
+    return;
+  }
+
+  try {
+    const existingVideo = await Video.findOne({ muxAssetId });
+    if (existingVideo) {
+      logger.warn(
+        { adminUserId, muxAssetId },
+        "Attempted to create metadata for existing Mux Asset ID"
+      );
+      res
+        .status(409)
+        .json({ message: "Video metadata for this asset already exists." });
+    }
+
+    let playbackId: string | undefined;
+    let duration: number | undefined;
+    let processingStatus: IVideo["muxProcessingStatus"] = "preparing";
+
+    try {
+      const asset = await muxClient.video.assets.retrieve(muxAssetId);
+
+      playbackId = asset.playback_ids?.find((p) => p.policy === "public")?.id;
+      duration = asset.duration;
+      if (asset.status === "ready") {
+        processingStatus = "ready";
+      } else if (asset.status === "errored") {
+        processingStatus = "errored";
+      }
+      logger.info(
+        { adminUserId, muxAssetId, playbackId, duration, status: asset.status },
+        "Fetched Mux asset details"
+      );
+    } catch (muxError: any) {
+      logger.error(
+        { err: muxError, adminUserId, muxAssetId },
+        "Failed to fetch asset details from Mux during metadata creation, proceeding without playbackId/duration."
+      );
+    }
+
+    const newVideo = new Video({
+      title,
+      description,
+      accessLevel,
+      isPublished: isPublished !== undefined ? isPublished : false,
+      muxAssetId,
+      muxPlaybackId: playbackId,
+      duration: duration,
+      muxProcessingStatus: processingStatus,
+      order: order,
+    });
+
+    await newVideo.save();
+    logger.info(
+      { adminUserId, videoId: newVideo._id, muxAssetId },
+      "Video metadata saved successfully"
+    );
+
+    saveLogToDb({
+      level: "info",
+      message: `Admin created video metadata: ${title}`,
+      userId: adminUserId,
+      meta: { videoId: (newVideo._id as any).toString(), muxAssetId },
+    });
+
+    res.status(201).json(newVideo);
+  } catch (error: any) {
+    logger.error(
+      { err: error, adminUserId, muxAssetId },
+      "Failed to save video metadata"
+    );
+    saveLogToDb({
+      level: "error",
+      message: `Video metadata save failed: ${error.message}`,
+      error,
+      userId: adminUserId,
+      meta: { muxAssetId },
+    });
+
+    if (error.code === 11000) {
+      res.status(409).json({ message: "Duplicate Mux Asset ID detected." });
+    }
+    res.status(500).json({ message: "Error saving video metadata" });
+  }
+};
+
+// TODO: Implement updateVideoMetadata, deleteVideo controllers later
+// updateVideoMetadata would likely take PUT /api/admin/videos/:videoId
+// deleteVideo would likely take DELETE /api/admin/videos/:videoId (and optionally delete Mux asset)
