@@ -108,7 +108,7 @@ app.use("/api/health", healthRoutes);
 app.use("/api/payments", apiLimiter, paymentRoutes);
 app.use("/api/admin", apiLimiter, adminRoutes);
 app.use("/api/videos", apiLimiter, videoRoutes);
-app.use("/api/admin", apiLimiter, adminVideoRoutes);
+app.use("/api/admin/videos", apiLimiter, adminVideoRoutes);
 app.use(metricsMiddleware);
 app.use((err: any, req: Request, res: Response, next: Function) => {
   logger.error(

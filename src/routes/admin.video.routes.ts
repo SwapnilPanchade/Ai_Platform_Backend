@@ -12,7 +12,7 @@ const router = Router();
 
 // POST /api/admin/videos/upload-url - Get a direct upload URL from Mux
 router.post(
-  "/videos/upload-url",
+  "/upload-url",
   authenticateToken,
   authorizeRoles("admin"),
   createUpdateUrl
@@ -20,7 +20,7 @@ router.post(
 
 // POST /api/admin/videos - Save video metadata after successful Mux upload
 router.post(
-  "/videos",
+  "/",
   authenticateToken,
   authorizeRoles("admin"),
   createVideoMetadata
