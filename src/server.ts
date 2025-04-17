@@ -19,6 +19,8 @@ import { Server as SocketIOServer } from "socket.io";
 import { setupWebSocket } from "./websocket";
 import rateLimit from "express-rate-limit";
 import defineCleanupJobs from "./jobs/cleanup.jobs";
+import adminVideoRoutes from "./routes/admin.video.routes";
+import videoRoutes from "./routes/admin.video.routes";
 
 dotenv.config();
 const app: Express = express();
@@ -105,6 +107,8 @@ app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/health", healthRoutes);
 app.use("/api/payments", apiLimiter, paymentRoutes);
 app.use("/api/admin", apiLimiter, adminRoutes);
+app.use("/api/videos", apiLimiter, videoRoutes);
+app.use("/api/admin", apiLimiter, adminVideoRoutes);
 app.use(metricsMiddleware);
 app.use((err: any, req: Request, res: Response, next: Function) => {
   logger.error(
