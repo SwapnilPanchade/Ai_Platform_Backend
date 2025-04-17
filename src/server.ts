@@ -20,7 +20,7 @@ import { setupWebSocket } from "./websocket";
 import rateLimit from "express-rate-limit";
 import defineCleanupJobs from "./jobs/cleanup.jobs";
 import adminVideoRoutes from "./routes/admin.video.routes";
-import videoRoutes from "./routes/admin.video.routes";
+import videoRoutes from "./routes/video.routes";
 
 dotenv.config();
 const app: Express = express();
